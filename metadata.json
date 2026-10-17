@@ -1,0 +1,8 @@
+{
+  "name": "CampusSlot — Campus Resource Booking Desk",
+  "description": "Campus facility and resource reservation management desk with conflict detection, capacity checks, and schedule filtering.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

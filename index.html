@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CampusSlot — Campus Resource Booking Desk</title>
+  <meta name="description" content="Campus facility and resource reservation management desk with conflict detection, capacity checks, and schedule filtering.">
+  <meta property="og:title" content="CampusSlot — Campus Resource Booking Desk">
+  <meta property="og:description" content="Campus facility and resource reservation management desk with conflict detection, capacity checks, and schedule filtering.">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <!-- Top Navigation & Brand Header -->
+  <header class="app-header">
+    <div class="header-container">
+      <div class="brand-group">
+        <div class="brand-icon" aria-hidden="true">🏛️</div>
+        <div>
+          <h1 class="brand-title">CampusSlot</h1>
+          <p class="brand-subtitle">Campus Resource &amp; Facility Booking Desk</p>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <div class="live-clock" aria-label="Current date and time">
+          <span class="clock-icon" aria-hidden="true">📅</span>
+          <span id="current-datetime">Loading date...</span>
+        </div>
+        <button id="btn-reset-demo" class="btn btn-secondary btn-sm" type="button" title="Reset dataset to default demo records">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+          Reset Demo
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="main-layout">
+    <!-- Live Metrics Dashboard -->
+    <section class="metrics-grid" aria-label="Resource Statistics Summary">
+      <div class="metric-card">
+        <div class="metric-icon metric-icon-blue" aria-hidden="true">📋</div>
+        <div class="metric-content">
+          <span class="metric-label">Active Bookings</span>
+          <div class="metric-value" id="stat-active-count">0</div>
+          <span class="metric-hint">Confirmed &amp; upcoming</span>
+        </div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-icon metric-icon-green" aria-hidden="true">📆</div>
+        <div class="metric-content">
+          <span class="metric-label">Today's Schedule</span>
+          <div class="metric-value" id="stat-today-count">0</div>
+          <span class="metric-hint">Active sessions today</span>
+        </div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-icon metric-icon-amber" aria-hidden="true">🚪</div>
+        <div class="metric-content">
+          <span class="metric-label">Room Availability</span>
+          <div class="metric-value" id="stat-available-rooms">0 / 7</div>
+          <span class="metric-hint">Rooms free for next slot</span>
+        </div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-icon metric-icon-purple" aria-hidden="true">👥</div>
+        <div class="metric-content">
+          <span class="metric-label">Total Attendees</span>
+          <div class="metric-value" id="stat-total-attendees">0</div>
+          <span class="metric-hint">Across active bookings</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Content Workspace -->
+    <div class="workspace-grid">
+      <!-- Left Column: Booking Form & Room Directory -->
+      <aside class="booking-sidebar">
+        <!-- New Reservation Card -->
+        <section class="card form-card" aria-labelledby="form-heading">
+          <div class="card-header">
+            <h2 id="form-heading" class="card-title">New Reservation</h2>
+            <p class="card-subtitle">Real-time conflict detection and capacity check</p>
+          </div>
+
+          <form id="booking-form" novalidate>
+            <!-- Requester Name -->
+            <div class="form-group">
+              <label for="field-requester" class="form-label">
+                Requester Name <span class="required-star" aria-hidden="true">*</span>
+              </label>
+              <input 
+                type="text" 
+                id="field-requester" 
+                name="requester" 
+                class="form-control" 
+                placeholder="e.g., Dr. Eleanor Vance"
+                required
+                autocomplete="off"
+              >
+              <div class="field-error" id="error-requester" role="alert" aria-live="polite"></div>
+            </div>
+
+            <!-- Booking Purpose -->
+            <div class="form-group">
+              <label for="field-purpose" class="form-label">
+                Purpose / Event Title <span class="required-star" aria-hidden="true">*</span>
+              </label>
+              <input 
+                type="text" 
+                id="field-purpose" 
+                name="purpose" 
+                class="form-control" 
+                placeholder="e.g., Neural Systems Guest Lecture"
+                required
+                autocomplete="off"
+              >
+              <div class="field-error" id="error-purpose" role="alert" aria-live="polite"></div>
+            </div>
+
+            <!-- Room Selection -->
+            <div class="form-group">
+              <label for="field-room" class="form-label">
+                Select Facility / Room <span class="required-star" aria-hidden="true">*</span>
+              </label>
+              <select id="field-room" name="roomId" class="form-control" required>
+                <option value="">-- Choose a room --</option>
+              </select>
+              <div class="field-error" id="error-room" role="alert" aria-live="polite"></div>
+              
+              <!-- Selected Room Preview Badge -->
+              <div id="room-detail-preview" class="room-preview-box hidden" aria-live="polite">
+                <div class="room-preview-info">
+                  <span id="preview-room-name" class="font-bold"></span>
+                  <span id="preview-room-loc" class="text-muted"></span>
+                </div>
+                <div class="room-preview-caps">
+                  <span class="badge badge-info" id="preview-room-cap"></span>
+                  <span class="badge badge-neutral" id="preview-room-type"></span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Booking Date -->
+            <div class="form-group">
+              <label for="field-date" class="form-label">
+                Date <span class="required-star" aria-hidden="true">*</span>
+              </label>
+              <input 
+                type="date" 
+                id="field-date" 
+                name="date" 
+                class="form-control" 
+                required
+              >
+              <div class="field-error" id="error-date" role="alert" aria-live="polite"></div>
+            </div>
+
+            <!-- Times Grid -->
+            <div class="form-row-2">
+              <div class="form-group">
+                <label for="field-start-time" class="form-label">
+                  Start Time <span class="required-star" aria-hidden="true">*</span>
+                </label>
+                <input 
+                  type="time" 
+                  id="field-start-time" 
+                  name="startTime" 
+                  class="form-control" 
+                  required
+                >
+                <div class="field-error" id="error-start-time" role="alert" aria-live="polite"></div>
+              </div>
+
+              <div class="form-group">
+                <label for="field-end-time" class="form-label">
+                  End Time <span class="required-star" aria-hidden="true">*</span>
+                </label>
+                <input 
+                  type="time" 
+                  id="field-end-time" 
+                  name="endTime" 
+                  class="form-control" 
+                  required
+                >
+                <div class="field-error" id="error-end-time" role="alert" aria-live="polite"></div>
+              </div>
+            </div>
+
+            <!-- Attendees Count -->
+            <div class="form-group">
+              <label for="field-attendees" class="form-label">
+                Expected Attendees <span class="required-star" aria-hidden="true">*</span>
+              </label>
+              <input 
+                type="number" 
+                id="field-attendees" 
+                name="attendees" 
+                class="form-control" 
+                placeholder="1" 
+                min="1" 
+                step="1"
+                required
+              >
+              <div class="field-error" id="error-attendees" role="alert" aria-live="polite"></div>
+            </div>
+
+            <!-- Global Form Feedback Area -->
+            <div id="form-general-feedback" class="form-alert hidden" role="alert"></div>
+
+            <!-- Actions -->
+            <div class="form-actions">
+              <button type="submit" class="btn btn-primary btn-block" id="btn-submit-booking">
+                Confirm Reservation
+              </button>
+              <button type="button" class="btn btn-ghost btn-block" id="btn-clear-form">
+                Clear Fields
+              </button>
+            </div>
+          </form>
+        </section>
+
+        <!-- Room Inventory Directory Quick Reference -->
+        <section class="card room-directory-card" aria-labelledby="directory-heading">
+          <div class="card-header">
+            <h2 id="directory-heading" class="card-title">Campus Facilities</h2>
+            <p class="card-subtitle">Available venues and maximum seating capacities</p>
+          </div>
+          <ul class="room-list" id="room-directory-list" role="list">
+            <!-- Dynamic Room Pills rendered by JS -->
+          </ul>
+        </section>
+      </aside>
+
+      <!-- Right Column: Filterable Bookings List -->
+      <section class="card bookings-management-card" aria-labelledby="bookings-heading">
+        <div class="bookings-header">
+          <div>
+            <h2 id="bookings-heading" class="card-title">Master Booking Desk</h2>
+            <p class="card-subtitle">Manage, search, filter and audit campus reservations</p>
+          </div>
+
+          <button id="btn-export-csv" class="btn btn-outline" type="button" title="Download CSV of current filtered view">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Export CSV
+          </button>
+        </div>
+
+        <!-- Filter & Search Controls Toolbar -->
+        <div class="filter-toolbar" role="search" aria-label="Filter bookings">
+          <div class="filter-item search-box">
+            <label for="filter-search" class="visually-hidden">Search bookings</label>
+            <input 
+              type="text" 
+              id="filter-search" 
+              class="form-control" 
+              placeholder="Search by requester, purpose, or room..."
+            >
+          </div>
+
+          <div class="filter-item">
+            <label for="filter-room" class="visually-hidden">Filter by room</label>
+            <select id="filter-room" class="form-control">
+              <option value="ALL">All Facilities</option>
+            </select>
+          </div>
+
+          <div class="filter-item">
+            <label for="filter-status" class="visually-hidden">Filter by status</label>
+            <select id="filter-status" class="form-control">
+              <option value="ALL">All Statuses</option>
+              <option value="confirmed">Active / Confirmed</option>
+              <option value="cancelled">Cancelled</option>
+            </select>
+          </div>
+
+          <div class="filter-item">
+            <label for="filter-date" class="visually-hidden">Filter by date</label>
+            <select id="filter-date" class="form-control">
+              <option value="ALL">All Dates</option>
+              <option value="TODAY">Today Only</option>
+              <option value="UPCOMING">Today &amp; Future</option>
+            </select>
+          </div>
+
+          <div class="filter-item">
+            <label for="sort-by" class="visually-hidden">Sort order</label>
+            <select id="sort-by" class="form-control">
+              <option value="soonest">Sort: Soonest Booking</option>
+              <option value="furthest">Sort: Latest Booking</option>
+              <option value="created_desc">Sort: Newest Created</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Results Counter & Active Filter Badge -->
+        <div class="results-meta">
+          <span id="results-count-text">Showing 0 bookings</span>
+          <button id="btn-reset-filters" class="link-btn hidden" type="button">Reset Filters</button>
+        </div>
+
+        <!-- Bookings Table Container -->
+        <div class="table-wrapper" tabindex="0" role="region" aria-label="Bookings List Table">
+          <table class="bookings-table" id="bookings-table">
+            <thead>
+              <tr>
+                <th scope="col">Status</th>
+                <th scope="col">Date &amp; Time</th>
+                <th scope="col">Venue / Room</th>
+                <th scope="col">Event Purpose</th>
+                <th scope="col">Requester</th>
+                <th scope="col">Pax</th>
+                <th scope="col" class="text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="bookings-tbody">
+              <!-- Rendered via JS -->
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Empty State Container -->
+        <div id="empty-state" class="empty-state hidden" aria-live="polite">
+          <div class="empty-state-icon" aria-hidden="true">🔍</div>
+          <h3 class="empty-state-title">No Bookings Found</h3>
+          <p class="empty-state-desc" id="empty-state-message">No records match the selected search and filter criteria.</p>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <!-- Notification Toast Container -->
+  <div id="toast-container" class="toast-container" aria-live="assertive" aria-atomic="true"></div>
+
+  <!-- Detail Modal -->
+  <div id="modal-detail" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="modal-detail-title">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="modal-detail-title" class="modal-title">Reservation Details</h3>
+        <button type="button" class="modal-close-btn" data-close-modal="detail" aria-label="Close dialog">&times;</button>
+      </div>
+      <div class="modal-body" id="modal-detail-content">
+        <!-- Rendered via JS -->
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-close-modal="detail">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Cancel Confirmation Modal -->
+  <div id="modal-cancel" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="modal-cancel-title">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="modal-cancel-title" class="modal-title text-danger">Cancel Reservation</h3>
+        <button type="button" class="modal-close-btn" data-close-modal="cancel" aria-label="Close dialog">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p>Are you sure you want to cancel this booking?</p>
+        <div class="cancel-summary-box" id="cancel-summary-details"></div>
+        <p class="text-sm text-muted">The slot will immediately be released and become available for new reservations. The record will remain archived as cancelled.</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-close-modal="cancel">Keep Booking</button>
+        <button type="button" class="btn btn-danger" id="btn-confirm-cancellation">Yes, Cancel Slot</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Reset Confirmation Modal -->
+  <div id="modal-reset" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="modal-reset-title">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="modal-reset-title" class="modal-title text-danger">Reset to Sample Dataset?</h3>
+        <button type="button" class="modal-close-btn" data-close-modal="reset" aria-label="Close dialog">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p>This action will replace all existing campus bookings with the pristine demo dataset.</p>
+        <p class="text-sm text-muted">Any newly added or cancelled bookings will be overwritten.</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-close-modal="reset">Dismiss</button>
+        <button type="button" class="btn btn-danger" id="btn-confirm-reset">Reset to Demo</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="./script.js"></script>
+</body>
+</html>
